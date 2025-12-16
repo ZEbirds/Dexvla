@@ -415,15 +415,19 @@ class RawRobotEnv():
                 node_length = 0.6
             else:
                 node_length = 0.3
-        next_nodes = self.generate_next_traj_nodes(start_node, step_length=node_length, max_steer_deg=45.0, num_branches=7)
-        next_node = None
-
+        long_traj = False
+        if traj_length > 0.4:
+            long_traj = True
         node_idx = 0
         if last_x>0:
             if abs(last_x)<0.03:
                 node_idx = 3
+                if long_traj:
+                    node_length = 1.4
             elif last_x<0.2:
                 node_idx = 4
+                if long_traj:
+                    node_length = 1.0
             elif last_x < 0.25:
                 node_idx = 5
             else:
@@ -432,8 +436,12 @@ class RawRobotEnv():
             angle_rad = math.atan2(-last_x,last_y)        # 弧度制
             angle_deg = math.degrees(angle_rad)
             if abs(angle_deg)<10:
+                if long_traj:
+                    node_length = 1.4
                 node_idx = 3
             elif angle_deg<=20:
+                if long_traj:
+                    node_length = 1.0
                 node_idx =2
             elif angle_deg<=30:
                 node_idx =1
@@ -445,6 +453,9 @@ class RawRobotEnv():
             #     node_idx =1
             # elif angle_deg>=40:
             #     node_idx =0
+
+        next_nodes = self.generate_next_traj_nodes(start_node, step_length=node_length, max_steer_deg=45.0, num_branches=7)
+        next_node = None
         next_node = next_nodes[node_idx]  # 直行
 
         action[:, 0] = next_node[:, 0]  # y

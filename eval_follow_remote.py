@@ -79,6 +79,7 @@ def handle_client(conn, addr, robot):
             print(f"[Server] Inference time: {end_time - start_time:.2f} seconds")
             # 序列化返回
             result = actions
+            print(f"Last point: {actions[-1]}")
             array_bytes = result.tobytes()
             array_len = len(array_bytes)
             shape = result.shape
