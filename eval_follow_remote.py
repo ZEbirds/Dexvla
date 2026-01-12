@@ -23,6 +23,7 @@ import numpy as np
 from io import BytesIO
 from PIL import Image
 import time
+from utils.logger import InferenceLog, InferenceLogger
 # 参数
 HOST = '0.0.0.0'  # 监听所有 IP
 PORT = 8888       # 你自定义的端口
@@ -37,26 +38,19 @@ def recv_all(sock, length):
         data += packet
     return data
 
-def handle_client(conn, addr, robot):
+def handle_client(conn, addr, robot, logger: InferenceLogger, seq_counter: int):
     print(f"[Server] Connected by {addr}")
     try:
         while True:
+            seq_counter += 1
             # --- 1. 接收图片数量 ---
-            start_time = time.time()
-
+            start_recv_time = time.time()
             raw_num_images = recv_all(conn, 4)
             num_images = struct.unpack('!I', raw_num_images)[0]
-            
-            end_time = time.time()
             if num_images == 0:
                 conn.sendall(struct.pack('!I', 0))
-                # print(f"[Server] Time to WAIT: {end_time - start_time:.2f} seconds")
                 continue
-            # num_images=1
-            print(f"[Server] Expecting {num_images} images")
-            print(f"[Server] Time to receive image count: {end_time - start_time:.2f} seconds")
 
-            start_time = time.time()
             images = []
             for _ in range(num_images):
                 raw_len = recv_all(conn, 4)
@@ -67,33 +61,42 @@ def handle_client(conn, addr, robot):
                 img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
                 img = cv2.resize(img, (320, 240))
                 images.append(img)
-
-            print(f"[Server] Received {len(images)} images")
-            end_time = time.time()
-            print(f"[Server] Time to receive images: {end_time - start_time:.2f} seconds")
+            end_recv_time = time.time()
             # 模型推理
-            start_time = time.time()
+            start_model_time = time.time()
             robot.set_obs(images, 0, True)
             actions = robot.eval_bc_raw()
-            end_time = time.time()
-            print(f"[Server] Inference time: {end_time - start_time:.2f} seconds")
+            outputs = None
+            end_model_time = time.time()
             # 序列化返回
+            seq_bytes = struct.pack('!I', seq_counter)
             result = actions
-            print(f"Last point: {actions[-1]}")
+            all_time = end_model_time - start_recv_time
+            print(f"[Server] Inference time: {all_time:.3f} s. Last point: {actions[-1]}")
             array_bytes = result.tobytes()
             array_len = len(array_bytes)
             shape = result.shape
             dtype_str = str(result.dtype)
 
-            start_time = time.time()
-            # conn.sendall(struct.pack('!II', shape[0], shape[1]))
-            # conn.sendall(struct.pack('!I', len(dtype_str)))
-            # conn.sendall(dtype_str.encode())
-            # conn.sendall(struct.pack('!I', array_len))
-            # # print(array_len)
-            conn.sendall(array_bytes)
-            end_time = time.time()
-            print(f"[Server] Connection handled in {end_time - start_time:.2f} seconds")
+            start_send_time = time.time()
+            conn.sendall(seq_bytes + array_bytes)
+            end_send_time = time.time()
+ 
+            log_entry = InferenceLog(
+                seq_idx=seq_counter,
+                num_images=len(images),
+                recv_start_time=start_recv_time,
+                recv_end_time=end_recv_time,
+                model_start_time=start_model_time,
+                model_end_time=end_model_time,
+                send_start_time=start_send_time,
+                send_end_time=end_send_time,
+                last_frame=images[-1] if images else None,
+                actions=actions,
+                instruction=robot.instruction,
+                outputs=outputs
+            )
+            logger.log(log_entry)
             
             print("[Server] Sent array response, waiting for next...")
 
@@ -103,14 +106,16 @@ def handle_client(conn, addr, robot):
         conn.close()
         print(f"[Server] Connection with {addr} closed.")
 
-def start_server(robot):
+def start_server(robot, log_save_dir="logs"):
+    inference_logger = InferenceLogger(save_dir=log_save_dir)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((HOST, PORT))
         s.listen(1)
         print(f"[Server] Listening on {HOST}:{PORT}")
-
         
+        seq_counter = 0
+
         while True:
 
             conn, addr = s.accept()
@@ -118,8 +123,7 @@ def start_server(robot):
             print("[Server] Connected")
             # handshake = recv_all(conn, 1)
             # print("[Server] Handshake received")
-            handle_client(conn, addr, robot)
-
+            handle_client(conn, addr, robot, inference_logger, seq_counter)
             # 一旦 client 断开，这里会自动返回，重新等待下一次连接
 
 
@@ -133,7 +137,7 @@ if __name__ == '__main__':
     json_data = cfg.json_file_path
     img_output_dir = cfg.img_output_dir
     video_output_dir = cfg.video_output_dir
-    log_path = create_log_json() if cfg.log_path is None else cfg.log_path 
+    log_path = "server_logs"
     # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>hyper parameters<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     action_head = 'scale_dp_policy'  # or 'unet_diffusion_policy'
     query_frequency = 16
@@ -151,8 +155,8 @@ if __name__ == '__main__':
     policy = qwen2_vla_policy(policy_config)
     agilex_bot = RawRobotEnv(policy_config, policy,plot_dir=img_output_dir)
     inference_frames = 8
-    agilex_bot.reset(inference_frames, None)
-    start_server(agilex_bot)
+    agilex_bot.reset(inference_frames, "The human wearing a black long-sleeve top and black pants.")
+    start_server(agilex_bot, log_path)
     ######################################
     time_step = 0
     timestep_gap = 0.2

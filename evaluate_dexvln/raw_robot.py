@@ -166,7 +166,7 @@ class RawRobotEnv():
 
         raw_lang ="follow the human"
         if human_description:
-            raw_lang = "follow :" + human_description
+            raw_lang = "Follow " + human_description
         self.instruction = f"Your task is: {raw_lang}. You are given a sequence of historical visual observations in temporal order (earliest first, latest last). Based on this sequence, predict your future movement trajectory."
 
     def set_episode_id(self, episode_id):
@@ -297,15 +297,11 @@ class RawRobotEnv():
                 all_actions = all_actions.to(dtype=torch.float32).cpu().numpy()
                 all_actions = np.array([self.post_process(raw_action) for raw_action in all_actions])
                 # all_actions = all_actions - all_actions[0]
-
                 raw_all_actions, all_actions = self.post_process_action(all_actions)
                 # actions,raw_lang = self.get_info()
                 # plot_actions(i,all_actions[0], actions, raw_lang, self.post_process, frames)
             self.local_actions = all_actions
-            start_time = time.time()
             self.visualize_trajectory(self.cur_images[-1],raw_all_actions, all_actions)
-            end_time = time.time()
-            print(f"[Server] Time to plot and save image: {end_time - start_time:.2f} seconds")
             ####################################################################################################################################
             # clear previous actions
             while len(self.action_queue) > 0:
@@ -400,7 +396,7 @@ class RawRobotEnv():
         
 
         # action = np.zeros_like(action)
-        # return action
+        return raw_action, action
 
         # Rule possible trajectories
         node_length = 0.3

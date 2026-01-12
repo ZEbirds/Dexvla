@@ -22,7 +22,7 @@
 import math
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
-
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -2046,7 +2046,6 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         #     output = self.policy_head(actions, distilbert_embed, states.to(distilbert_embed.dtype), is_pad)
         #     return output, "[distilbert_no_generation]"
 
-
         with torch.inference_mode():
             outputs = self.generate(
                 input_ids,
@@ -2064,7 +2063,6 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
                 output_hidden_states=True,
                 return_dict_in_generate=True,
             )
-
         output_ids = outputs.sequences
         # last_hidden_states = outputs.hidden_states[-2][-1]
         input_token_len = input_ids.shape[1]
@@ -2099,8 +2097,9 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         else:
             action_hidden_states = torch.cat(last_hidden_states, dim=1)
 
-
+        start_diffusion_time = time.time()
         action = self.policy_head(actions, action_hidden_states, states.to(all_hidden_states.dtype), is_pad)
+        print(f"Diffusion time: {time.time() - start_diffusion_time} seconds")
         return action, outputs_text
 
     def evaluate_tinyvla(self,
