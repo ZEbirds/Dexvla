@@ -460,7 +460,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
 
 
         norm_stats = self.norm_stats
-
+        
         action_data = ((action_data - norm_stats["action_min"]) / (norm_stats["action_max"] - norm_stats["action_min"])) * 2 - 1
 
         qpos_data = (qpos_data - norm_stats["qpos_mean"]) / norm_stats["qpos_std"]

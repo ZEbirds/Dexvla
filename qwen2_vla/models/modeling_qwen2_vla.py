@@ -1868,7 +1868,7 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
         #     action_hidden_states = distilbert_embeds  # 用它代替原来的hidden_states
         # elif 
         if self.using_film:
-            print("wzj using film")
+            # print("wzj using film")
             action_hidden_states = self.film_forward(labels=labels, input_ids=input_ids,
                                                      hidden_states=hidden_states)
         else: 
@@ -1880,9 +1880,18 @@ class Qwen2VLForConditionalGenerationForVLA(Qwen2VLPreTrainedModel, GenerationMi
                 'llm_loss': llm_loss,
                 'action_loss': ret['loss']}
         
+        # if ret["reconstructed_action"] is not None:
+        #     plot_actions(ret["reconstructed_action"], ret["noise_pred"].detach(), actions,  float(ret['loss'].detach().cpu()) ,ret["steps"])
         if ret["reconstructed_action"] is not None:
-            plot_actions(ret["reconstructed_action"], ret["noise_pred"].detach(), actions,  float(ret['loss'].detach().cpu()) ,ret["steps"])
-
+            rank = torch.distributed.get_rank() if torch.distributed.is_initialized() else 0
+            plot_actions(
+                ret["reconstructed_action"],
+                ret["noise_pred"].detach(),
+                actions,
+                float(ret['loss'].detach().cpu()),
+                ret["steps"],
+                rank=rank
+            )
         if not return_dict:
             output = (logits,) + outputs[1:]
             return (loss,) + output if loss is not None else output

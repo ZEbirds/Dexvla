@@ -409,7 +409,7 @@ def process_one(src_file: Path, frames_root: Path, dst_root: Path, viz_root: Pat
                 d.create_dataset('action', data=actions, compression='gzip')
                 qposes = np.zeros_like(actions)
                 d.create_dataset('qpos', data=qposes, compression='gzip')
-                if viz_root and False:
+                if viz_root and True:
                     visualize_follow_path(d, actions,huamn_local, viz_root/ep_name/f"action_{obs_idx}_{type}.png")
     print(f"✓ {ep_name} -> {dst_h5}")
 

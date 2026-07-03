@@ -8,14 +8,22 @@ TASK_CONFIGS = {
     },
     'follow_hdf5': { # for nav
         'dataset_dir': [
-            "data/split_data/single_follow"
+            "data/split_data/floor_1_person_follow",
+            "data/split_data/floor_4_person_follow",
+            "data/split_data/yongshuiqiao_canting_person_follow",
+            "data/split_data/yongshuiqiao_library_person_follow",
+            "data/split_data/yongshuiqiao_zhongting_person_follow"
         ],
         'episode_len': 1000,  
         'camera_names': ['cam_high'] # replacing with your real keys in h5py formatted data
     },
     'multi_follow': { # for nav
         'dataset_dir': [
-            "data/split_data/multi_follow"
+            "data/split_data/floor_1_person_follow",
+            "data/split_data/floor_4_person_follow",
+            "data/split_data/yongshuiqiao_canting_person_follow",
+            "data/split_data/yongshuiqiao_library_person_follow",
+            "data/split_data/yongshuiqiao_zhongting_person_follow"
         ],
         'episode_len': 1000,  
         'camera_names': ['cam_high'] # replacing with your real keys in h5py formatted data

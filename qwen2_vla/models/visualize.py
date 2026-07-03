@@ -8,7 +8,9 @@ import numpy as np
 output_dir = "plot_in_train/follow"
 os.makedirs(output_dir, exist_ok=True)
 
-def plot_actions(predicted_actions, noise_pred, target_actions, loss, step):
+def plot_actions(predicted_actions, noise_pred, target_actions, loss, step, rank=0):
+    output_dir = f"plot_in_train/follow/rank{rank}"
+    os.makedirs(output_dir, exist_ok=True)
     # 颜色设置
     pred_color = 'tab:orange'
     target_color = 'tab:blue'

@@ -915,5 +915,19 @@
         "sample_fps": 3,
         "plan_fps": 10,
         "follow_size": 5
+    },
+    {
+        "index": 4,
+        "success": false,
+        "sample_fps": 3,
+        "plan_fps": 10,
+        "follow_size": 5
+    },
+    {
+        "index": 9,
+        "success": false,
+        "sample_fps": 3,
+        "plan_fps": 10,
+        "follow_size": 5
     }
 ]
